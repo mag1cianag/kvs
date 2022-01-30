@@ -1,7 +1,9 @@
 use clap::{app_from_crate, arg, App, AppSettings};
+use kvs::{KvStore, Result};
+use std::env::current_dir;
 use std::process::exit;
 
-fn main() {
+fn main() -> Result<()> {
     let matches = app_from_crate!()
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .setting(AppSettings::DisableHelpSubcommand)
@@ -24,13 +26,20 @@ fn main() {
         )
         .get_matches();
     match matches.subcommand() {
-        Some(("set", _m)) => {
-            eprintln!("unimplemented");
-            exit(1);
+        Some(("set", m)) => {
+            let key = m.value_of("KEY").unwrap();
+            let value = m.value_of("VALUE").unwrap();
+            let mut store = KvStore::open(current_dir()?)?;
+            store.set(key.to_string(), value.to_string())?;
         }
-        Some(("get", _m)) => {
-            eprintln!("unimplemented");
-            exit(1);
+        Some(("get", m)) => {
+            let key = m.value_of("KEY").unwrap();
+            let mut store = KvStore::open(current_dir()?)?;
+            if let Some(value) = store.get(key.to_string())? {
+                println!("{}", value);
+            } else {
+                println!("Key not found");
+            }
         }
         Some(("rm", _m)) => {
             eprintln!("unimplemented");
@@ -38,4 +47,5 @@ fn main() {
         }
         _ => unreachable!(),
     }
+    Ok(())
 }
