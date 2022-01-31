@@ -1,5 +1,5 @@
 use clap::{app_from_crate, arg, App, AppSettings};
-use kvs::{KvStore, Result};
+use kvs::{KvStore, KvsError, Result};
 use std::env::current_dir;
 use std::process::exit;
 
@@ -28,8 +28,8 @@ fn main() -> Result<()> {
     match matches.subcommand() {
         Some(("set", m)) => {
             let key = m.value_of("KEY").unwrap();
-            let value = m.value_of("VALUE").unwrap();
             let mut store = KvStore::open(current_dir()?)?;
+            let value = m.value_of("VALUE").unwrap();
             store.set(key.to_string(), value.to_string())?;
         }
         Some(("get", m)) => {
@@ -41,9 +41,17 @@ fn main() -> Result<()> {
                 println!("Key not found");
             }
         }
-        Some(("rm", _m)) => {
-            eprintln!("unimplemented");
-            exit(1);
+        Some(("rm", m)) => {
+            let key = m.value_of("KEY").unwrap();
+            let mut store = KvStore::open(current_dir()?)?;
+            match store.remove(key.to_string()) {
+                Ok(_) => {}
+                Err(KvsError::KeyNotFound) => {
+                    println!("Key not found");
+                    exit(1);
+                }
+                Err(e) => return Err(e),
+            }
         }
         _ => unreachable!(),
     }
